@@ -1,0 +1,10 @@
+.env
+bank.db
+keys/private_key.pem
+keys/public_key.pem
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/

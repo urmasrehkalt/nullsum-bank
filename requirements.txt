@@ -1,0 +1,9 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+sqlalchemy[asyncio]==2.0.40
+aiosqlite==0.21.0
+python-jose[cryptography]==3.3.0
+httpx==0.28.1
+pydantic-settings==2.8.1
+python-dotenv==1.1.0
+cryptography==44.0.2
