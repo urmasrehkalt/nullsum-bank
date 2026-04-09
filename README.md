@@ -201,7 +201,7 @@ sudo systemctl reload caddy
 
 ### Register a user
 ```bash
-curl -s -X POST https://your-domain.com/api/v1/users \
+curl -s -X POST https://zerosum.fsa.ee/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{"fullName": "Alice Smith", "email": "alice@example.com"}' | jq .
 ```
@@ -217,12 +217,14 @@ Response:
 }
 ```
 
+> **Note:** `token` is returned immediately at registration — this is an extension beyond the OpenAPI spec. Save it for use in subsequent requests.
+
 ### Create an account
 ```bash
 TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 USER_ID="user-550e8400-e29b-41d4-a716-446655440000"
 
-curl -s -X POST https://your-domain.com/api/v1/users/$USER_ID/accounts \
+curl -s -X POST https://zerosum.fsa.ee/api/v1/users/$USER_ID/accounts \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"currency": "EUR"}' | jq .
@@ -231,7 +233,7 @@ curl -s -X POST https://your-domain.com/api/v1/users/$USER_ID/accounts \
 Response:
 ```json
 {
-  "accountNumber": "EST1A2B3",
+  "accountNumber": "NUL1A2B3",
   "ownerId": "user-550e8400-e29b-41d4-a716-446655440000",
   "currency": "EUR",
   "balance": "10.00",
@@ -241,18 +243,18 @@ Response:
 
 ### Look up an account (public, no auth)
 ```bash
-curl -s https://your-domain.com/api/v1/accounts/EST1A2B3 | jq .
+curl -s https://zerosum.fsa.ee/api/v1/accounts/NUL1A2B3 | jq .
 ```
 
 ### Initiate a transfer
 ```bash
-curl -s -X POST https://your-domain.com/api/v1/transfers \
+curl -s -X POST https://zerosum.fsa.ee/api/v1/transfers \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "transferId": "550e8400-e29b-41d4-a716-446655440001",
-    "sourceAccount": "EST1A2B3",
-    "destinationAccount": "EST9X8Y7",
+    "sourceAccount": "NUL1A2B3",
+    "destinationAccount": "NUL9X8Y7",
     "amount": "25.00"
   }' | jq .
 ```
@@ -260,7 +262,7 @@ curl -s -X POST https://your-domain.com/api/v1/transfers \
 ### Check transfer status
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN" \
-  https://your-domain.com/api/v1/transfers/550e8400-e29b-41d4-a716-446655440001 | jq .
+  https://zerosum.fsa.ee/api/v1/transfers/550e8400-e29b-41d4-a716-446655440001 | jq .
 ```
 
 ---
@@ -301,7 +303,7 @@ All endpoints tested locally with curl. Results:
 | `POST /users` — duplicate email | ✅ 409 Conflict |
 | `GET /users/{userId}` — own profile | ✅ 200 |
 | `GET /users/{userId}` — other user | ✅ 403 Forbidden |
-| `POST /users/{id}/accounts` — create EUR account | ✅ 201, accountNumber format `NLS*****` |
+| `POST /users/{id}/accounts` — create EUR account | ✅ 201, accountNumber format `NUL*****`, balance `10.00` |
 | `POST /users/{id}/accounts` — wrong user | ✅ 403 Forbidden |
 | `GET /accounts/{accountNumber}` — public lookup | ✅ 200, returns ownerName + currency |
 | `GET /accounts/{accountNumber}` — not found | ✅ 404 |
