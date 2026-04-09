@@ -55,7 +55,12 @@ async def register_with_central_bank(db: AsyncSession, public_key_pem: str) -> s
         raise RuntimeError("Bank already registered but bankId unknown. Clear DB to re-register.")
 
     resp.raise_for_status()
-    data = resp.json()
+    # Central bank may return PHP warnings before the JSON body — find the first '{'
+    text = resp.text
+    json_start = text.find("{")
+    if json_start < 0:
+        raise RuntimeError(f"No JSON in registration response: {text[:200]}")
+    data = json.loads(text[json_start:])
     bank_id: str = data["bankId"]
     bank_prefix = bank_id[:3]
 
