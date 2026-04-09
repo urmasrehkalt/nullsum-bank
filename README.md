@@ -1,8 +1,6 @@
 # NullSum Bank
 
-> *Topeltmäng: `null` programmeerimisest + "zero-sum game" finantsist.*
-
-Branch bank API for the TAK25 school project — integrates with a Central Bank to enable user accounts, transfers, and inter-bank payments.
+Branch bank - integrates with a Central Bank to enable user accounts, transfers, and inter-bank payments.
 
 ---
 
