@@ -56,22 +56,15 @@ async def register_user(
 async def get_user(
     userId: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     if current_user.id != userId:
         raise HTTPException(
             status_code=403,
             detail={"code": "FORBIDDEN", "message": "Cannot view another user's profile"},
         )
-    user = await user_service.get_user_by_id(db, userId)
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
-        )
     return UserProfileResponse(
-        userId=user.id,
-        fullName=user.full_name,
-        email=user.email,
-        createdAt=user.created_at,
+        userId=current_user.id,
+        fullName=current_user.full_name,
+        email=current_user.email,
+        createdAt=current_user.created_at,
     )

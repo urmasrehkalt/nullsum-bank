@@ -362,6 +362,11 @@ async def receive_interbank_transfer(db: AsyncSession, jwt_token: str) -> Transf
             converted_amount_str = _format_decimal(credited_amount)
         except Exception as exc:
             logger.error("Currency conversion failed: %s", exc)
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "CONVERSION_FAILED", "message": "Currency conversion unavailable, try again later"},
+            ) from exc
 
     # Credit destination account
     dest_account.balance = _format_decimal(
@@ -407,7 +412,7 @@ async def get_transfer_status(
         select(Account).where(Account.account_number == transfer.source_account)
     )
     src_account = src_result.scalar_one_or_none()
-    if src_account and src_account.owner_id != current_user_id:
+    if src_account is None or src_account.owner_id != current_user_id:
         from fastapi import HTTPException
         raise HTTPException(
             status_code=403,
@@ -484,6 +489,7 @@ async def retry_pending_transfers(db: AsyncSession) -> None:
             "sourceAccount": transfer.source_account,
             "destinationAccount": transfer.destination_account,
             "amount": transfer.amount,
+            "currency": src_account.currency,
             "sourceBankId": our_bank_id,
             "destinationBankId": dest_bank_id,
             "timestamp": _now_iso(),
