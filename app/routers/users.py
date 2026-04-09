@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+
+from app.auth import get_current_user
 from app.database import get_db
 from app.models import User
-from app.schemas import UserRegistrationRequest, UserRegistrationResponse, ErrorResponse
+from app.schemas import UserRegistrationRequest, UserRegistrationResponse, UserProfileResponse, ErrorResponse
 from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -39,4 +41,37 @@ async def register_user(
         email=user.email,
         createdAt=user.created_at,
         token=user.api_key,
+    )
+
+
+@router.get(
+    "/{userId}",
+    response_model=UserProfileResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
+async def get_user(
+    userId: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.id != userId:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "FORBIDDEN", "message": "Cannot view another user's profile"},
+        )
+    user = await user_service.get_user_by_id(db, userId)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+    return UserProfileResponse(
+        userId=user.id,
+        fullName=user.full_name,
+        email=user.email,
+        createdAt=user.created_at,
     )

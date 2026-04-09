@@ -84,22 +84,16 @@ async def _do_external_transfer(
     if not dest_bank:
         transfer.status = "failed"
         transfer.error_message = f"Unknown destination bank prefix: {dest_prefix}"
+        # Refund source account (was already debited in initiate_transfer)
+        source_account.balance = _format_decimal(
+            _parse_decimal(source_account.balance) + _parse_decimal(transfer.amount)
+        )
         await db.commit()
         return transfer
 
-    # Currency conversion
+    # We send amount in source currency; receiving bank converts if needed.
     src_currency = source_account.currency
     amount = _parse_decimal(transfer.amount)
-    converted_amount = amount
-    exchange_rate = None
-    rate_captured_at = None
-
-    dest_account_result = await db.execute(
-        select(Account).where(Account.account_number == transfer.destination_account)
-    )
-    # For external account, we don't know the currency in advance. The receiving bank handles it.
-    # We send amount in source currency; receiving bank converts if needed.
-    # Per spec: amount field in JWT is source amount. Receiving bank credits in their currency.
 
     our_bank_id = await get_bank_id(db)
     dest_bank_id = dest_bank["bankId"]
@@ -127,10 +121,7 @@ async def _do_external_transfer(
 
         if resp.status_code == 200:
             resp_data = resp.json()
-            # Debit source account
-            src_balance = _parse_decimal(source_account.balance)
-            source_account.balance = _format_decimal(src_balance - amount)
-
+            # Source account was already debited in initiate_transfer — do not debit again
             transfer.status = "completed"
             if resp_data.get("amount") != transfer.amount:
                 transfer.converted_amount = resp_data.get("amount")
@@ -140,6 +131,7 @@ async def _do_external_transfer(
 
         elif resp.status_code in (503, 504, 502, 500):
             # Destination bank unavailable — set pending with retry
+            # Source account remains debited; refund happens on failed_timeout
             transfer.status = "pending"
             transfer.pending_since = _now_iso()
             transfer.next_retry_at = (
@@ -153,6 +145,10 @@ async def _do_external_transfer(
             error_text = resp.text
             transfer.status = "failed"
             transfer.error_message = f"Destination bank rejected transfer: {resp.status_code} {error_text}"
+            # Refund source account
+            source_account.balance = _format_decimal(
+                _parse_decimal(source_account.balance) + amount
+            )
             await db.commit()
             return transfer
 

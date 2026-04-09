@@ -276,6 +276,32 @@ POST /transfers
 
 ---
 
+## Test Results
+
+All endpoints tested locally with curl. Results:
+
+| Scenario | Result |
+|---|---|
+| `POST /users` — register user | ✅ 201, returns token |
+| `POST /users` — duplicate email | ✅ 409 Conflict |
+| `GET /users/{userId}` — own profile | ✅ 200 |
+| `GET /users/{userId}` — other user | ✅ 403 Forbidden |
+| `POST /users/{id}/accounts` — create EUR account | ✅ 201, accountNumber format `NLS*****` |
+| `POST /users/{id}/accounts` — wrong user | ✅ 403 Forbidden |
+| `GET /accounts/{accountNumber}` — public lookup | ✅ 200, returns ownerName + currency |
+| `GET /accounts/{accountNumber}` — not found | ✅ 404 |
+| `POST /transfers` — internal transfer | ✅ 201 completed, balances updated atomically |
+| `POST /transfers` — insufficient funds | ✅ 422 |
+| `POST /transfers` — idempotency (same transferId) | ✅ returns existing, no double debit |
+| `POST /transfers` — wrong source account owner | ✅ 403 |
+| `GET /transfers/{transferId}` — status check | ✅ 200 |
+| `POST /transfers/receive` — incoming JWT transfer | ✅ 200, credits destination |
+| `POST /transfers/receive` — invalid JWT | ✅ 401 |
+| External transfer fail → refund | ✅ balance restored on 4xx |
+| Pending transfer → 4h timeout → refund | ✅ status `failed_timeout`, balance restored |
+
+---
+
 ## Live URL
 
 `https://your-domain.com` *(to be updated after VPS deployment)*

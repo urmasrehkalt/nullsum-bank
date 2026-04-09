@@ -25,6 +25,13 @@ class UserRegistrationResponse(BaseModel):
     token: str  # Extension: Bearer token returned at registration
 
 
+class UserProfileResponse(BaseModel):
+    userId: str
+    fullName: str
+    email: Optional[str] = None
+    createdAt: str
+
+
 # ── Accounts ───────────────────────────────────────────────────────────────
 
 class AccountCreationRequest(BaseModel):
