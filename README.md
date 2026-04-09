@@ -142,7 +142,7 @@ Interactive API documentation is available at:
 | Environment | URL |
 | --- | --- |
 | Local | `http://localhost:8000/docs` |
-| Live | `https://your-domain.com/docs` |
+| Live | `https://zerosum.fsa.ee/docs` |
 
 ### How to authenticate in Swagger UI
 
@@ -155,7 +155,9 @@ Alternative: `http://localhost:8000/redoc` for read-only documentation.
 
 ---
 
-## VPS Deployment (systemd + Nginx)
+## VPS Deployment (systemd + Caddy)
+
+Deployed on a Debian VPS running as user `bank`. Caddy handles TLS automatically via Let's Encrypt.
 
 ### systemd service `/etc/systemd/system/nullsum-bank.service`
 
@@ -165,37 +167,32 @@ Description=NullSum Bank API
 After=network.target
 
 [Service]
-User=www-data
-WorkingDirectory=/opt/nullsum-bank
-EnvironmentFile=/opt/nullsum-bank/.env
-ExecStart=/opt/nullsum-bank/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+User=bank
+WorkingDirectory=/home/bank/nullsum-bank
+EnvironmentFile=/home/bank/nullsum-bank/.env
+ExecStart=/home/bank/nullsum-bank/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable nullsum-bank
-sudo systemctl start nullsum-bank
+sudo systemctl daemon-reload
+sudo systemctl enable --now nullsum-bank
 ```
 
-### Nginx `/etc/nginx/sites-available/nullsum-bank`
+### Caddy `/etc/caddy/Caddyfile`
 
-```nginx
-server {
-    listen 443 ssl;
-    server_name your-domain.com;
-
-    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
+```caddy
+zerosum.fsa.ee {
+    reverse_proxy localhost:8001
 }
+```
+
+```bash
+sudo systemctl reload caddy
 ```
 
 ---
@@ -237,7 +234,7 @@ Response:
   "accountNumber": "EST1A2B3",
   "ownerId": "user-550e8400-e29b-41d4-a716-446655440000",
   "currency": "EUR",
-  "balance": "0.00",
+  "balance": "10.00",
   "createdAt": "2026-04-08T10:01:00+00:00"
 }
 ```
@@ -310,7 +307,7 @@ All endpoints tested locally with curl. Results:
 | `GET /accounts/{accountNumber}` — not found | ✅ 404 |
 | `POST /transfers` — internal transfer | ✅ 201 completed, balances updated atomically |
 | `POST /transfers` — insufficient funds | ✅ 422 |
-| `POST /transfers` — idempotency (same transferId) | ✅ returns existing, no double debit |
+| `POST /transfers` — idempotency (same transferId) | ✅ 409 `DUPLICATE_TRANSFER` |
 | `POST /transfers` — wrong source account owner | ✅ 403 |
 | `GET /transfers/{transferId}` — status check | ✅ 200 |
 | `POST /transfers/receive` — incoming JWT transfer | ✅ 200, credits destination |
@@ -322,4 +319,8 @@ All endpoints tested locally with curl. Results:
 
 ## Live URL
 
-`https://your-domain.com` *(to be updated after VPS deployment)*
+| | URL |
+| --- | --- |
+| API | `https://zerosum.fsa.ee` |
+| Swagger UI | `https://zerosum.fsa.ee/docs` |
+| Health | `https://zerosum.fsa.ee/health` |
