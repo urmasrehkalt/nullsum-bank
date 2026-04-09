@@ -3,6 +3,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.auth import ensure_keys, get_public_key_pem
@@ -122,7 +123,25 @@ app = FastAPI(
 )
 
 
-# ── Global error handler for dict detail ──────────────────────────────────
+# ── Error handlers — flatten detail to match spec {code, message} ─────────
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    detail = exc.detail
+    if isinstance(detail, dict) and "code" in detail:
+        content = detail
+    else:
+        content = {"code": "ERROR", "message": str(detail)}
+    return JSONResponse(status_code=exc.status_code, content=content)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"code": "INVALID_REQUEST", "message": str(exc.errors()[0].get("msg", exc))},
+    )
+
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
