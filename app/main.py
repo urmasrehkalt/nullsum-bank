@@ -76,11 +76,49 @@ async def lifespan(app: FastAPI):
     retry_task.cancel()
 
 
+_DESCRIPTION = """
+Branch bank API for the TAK25 school project. Integrates with the Central Bank to support
+user accounts, intra-bank transfers, and inter-bank payments signed with ES256 JWTs.
+
+## Authentication
+
+All protected endpoints require a **Bearer token** issued at registration.
+
+1. Call `POST /api/v1/users` to register and receive a token.
+2. Click **Authorize** (🔒) in the top-right corner of this page.
+3. Paste the token value and click **Authorize**.
+
+All subsequent requests will include the token automatically.
+"""
+
+_TAGS = [
+    {
+        "name": "Users",
+        "description": "Register users and retrieve user profiles.",
+    },
+    {
+        "name": "Accounts",
+        "description": "Create accounts and look up account details.",
+    },
+    {
+        "name": "Transfers",
+        "description": (
+            "Initiate intra-bank and inter-bank transfers, receive incoming transfers "
+            "from other banks, and query transfer status."
+        ),
+    },
+    {
+        "name": "Health",
+        "description": "Liveness probe — no authentication required.",
+    },
+]
+
 app = FastAPI(
     title="NullSum Bank API",
-    description="Branch bank API — TAK25 school project",
+    description=_DESCRIPTION,
     version="1.0.0",
     lifespan=lifespan,
+    openapi_tags=_TAGS,
 )
 
 

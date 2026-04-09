@@ -133,7 +133,25 @@ On startup the app will:
 3. Register with the Central Bank
 4. Start heartbeat + retry background tasks
 
-API docs available at `http://localhost:8000/docs`
+---
+
+## Swagger UI
+
+Interactive API documentation is available at:
+
+| Environment | URL |
+| --- | --- |
+| Local | `http://localhost:8000/docs` |
+| Live | `https://your-domain.com/docs` |
+
+### How to authenticate in Swagger UI
+
+1. Register a user via `POST /api/v1/users` — copy the `token` from the response.
+2. Click **Authorize** (🔒) at the top-right of the Swagger UI page.
+3. Paste the token value in the **HTTPBearer** field and click **Authorize**.
+4. All protected endpoints will now include your token automatically.
+
+Alternative: `http://localhost:8000/redoc` for read-only documentation.
 
 ---
 
