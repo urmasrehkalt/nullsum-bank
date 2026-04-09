@@ -1,5 +1,6 @@
 .env
 bank.db
+pangaülesanne.md
 keys/private_key.pem
 keys/public_key.pem
 __pycache__/
