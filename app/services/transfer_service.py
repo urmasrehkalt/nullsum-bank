@@ -175,13 +175,22 @@ async def initiate_transfer(
     amount: str,
     current_user_id: str,
 ) -> Transfer:
-    # Idempotency: return existing if already processed
+    # Idempotency: reject duplicate transferId
     existing = await db.execute(
         select(Transfer).where(Transfer.transfer_id == transfer_id)
     )
     existing_transfer = existing.scalar_one_or_none()
     if existing_transfer:
-        return existing_transfer
+        from fastapi import HTTPException
+        if existing_transfer.status == "pending":
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "TRANSFER_ALREADY_PENDING", "message": f"Transfer with ID '{transfer_id}' is already pending. Cannot submit duplicate transfer."},
+            )
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "DUPLICATE_TRANSFER", "message": f"A transfer with ID '{transfer_id}' already exists"},
+        )
 
     # Validate source account ownership
     src_result = await db.execute(

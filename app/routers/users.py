@@ -31,7 +31,7 @@ async def register_user(
         if result.scalar_one_or_none():
             raise HTTPException(
                 status_code=409,
-                detail={"code": "EMAIL_CONFLICT", "message": "Email already registered"},
+                detail={"code": "DUPLICATE_USER", "message": "A user with this email address is already registered"},
             )
 
     user = await user_service.create_user(db, body.fullName, body.email)

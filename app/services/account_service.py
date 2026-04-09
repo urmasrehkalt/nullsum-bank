@@ -35,7 +35,7 @@ async def create_account(db: AsyncSession, owner_id: str, currency: str) -> Acco
         account_number=account_number,
         owner_id=owner_id,
         currency=currency,
-        balance="0.00",
+        balance="10.00",
         created_at=now,
     )
     db.add(account)

@@ -161,4 +161,5 @@ app.include_router(transfers.router, prefix="/api/v1")
 
 @app.get("/health", tags=["Health"])
 async def health():
-    return {"status": "ok"}
+    from datetime import datetime, timezone
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
