@@ -34,6 +34,21 @@ async def _set_state(db: AsyncSession, key: str, value: str) -> None:
 
 # ── Registration ───────────────────────────────────────────────────────────
 
+async def _find_own_bank_in_directory() -> str | None:
+    """Look up our own bank in the central bank directory by address."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(f"{CENTRAL_BANK_URL}/api/v1/banks")
+        resp.raise_for_status()
+        banks = resp.json().get("banks", [])
+        for bank in banks:
+            if bank.get("address") == settings.BANK_ADDRESS:
+                return bank.get("bankId")
+    except Exception as exc:
+        logger.warning("Could not fetch directory to recover bank_id: %s", exc)
+    return None
+
+
 async def register_with_central_bank(db: AsyncSession, public_key_pem: str) -> str:
     """Register with central bank. Returns assigned bankId. Idempotent."""
     existing_id = await _get_state(db, "bank_id")
@@ -47,14 +62,28 @@ async def register_with_central_bank(db: AsyncSession, public_key_pem: str) -> s
         "publicKey": public_key_pem,
     }
     async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(f"{CENTRAL_BANK_URL}/api/v1/banks", json=payload)
+        resp = await client.post(
+            f"{CENTRAL_BANK_URL}/api/v1/banks",
+            content=json.dumps(payload),
+            headers={"Content-Type": "application/json"},
+        )
 
-    if resp.status_code == 409:
-        # Already registered — fetch our bankId from directory by address
-        logger.warning("409 on registration — may already be registered")
-        raise RuntimeError("Bank already registered but bankId unknown. Clear DB to re-register.")
+    if resp.status_code in (400, 409):
+        logger.warning("Registration returned %s: %s — checking directory for existing registration", resp.status_code, resp.text)
+        bank_id = await _find_own_bank_in_directory()
+        if bank_id:
+            bank_prefix = bank_id[:3]
+            await _set_state(db, "bank_id", bank_id)
+            await _set_state(db, "bank_prefix", bank_prefix)
+            await _set_state(db, "registered_at", datetime.now(timezone.utc).isoformat())
+            logger.info("Recovered bank_id from directory: %s (prefix: %s)", bank_id, bank_prefix)
+            return bank_id
+        raise RuntimeError(f"Registration failed ({resp.status_code}) and bank not found in directory: {resp.text}")
 
+    if not resp.is_success:
+        logger.error("Registration failed: %s %s", resp.status_code, resp.text)
     resp.raise_for_status()
+
     # Central bank may return PHP warnings before the JSON body — find the first '{'
     text = resp.text
     json_start = text.find("{")
