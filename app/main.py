@@ -21,7 +21,7 @@ RETRY_INTERVAL_SECONDS = 60            # 1 minute
 
 
 async def _heartbeat_loop():
-    await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
+    await asyncio.sleep(10)  # short delay to let startup complete
     while True:
         try:
             async with AsyncSessionLocal() as db:
