@@ -32,6 +32,14 @@ async def _set_state(db: AsyncSession, key: str, value: str) -> None:
     await db.commit()
 
 
+async def _delete_state(db: AsyncSession, key: str) -> None:
+    result = await db.execute(select(BankState).where(BankState.key == key))
+    row = result.scalar_one_or_none()
+    if row:
+        await db.delete(row)
+        await db.commit()
+
+
 # ── Registration ───────────────────────────────────────────────────────────
 
 async def _find_own_bank_in_directory() -> str | None:
@@ -119,6 +127,16 @@ async def send_heartbeat(db: AsyncSession) -> None:
     if resp.status_code == 200:
         await _set_state(db, "last_heartbeat_at", datetime.now(timezone.utc).isoformat())
         logger.info("Heartbeat sent successfully for %s", bank_id)
+    elif resp.status_code == 404 and not settings.BANK_ID:
+        logger.warning("Heartbeat 404 — bank removed from central bank, re-registering")
+        await _delete_state(db, "bank_id")
+        await _delete_state(db, "bank_prefix")
+        from app.auth import get_public_key_pem
+        try:
+            new_id = await register_with_central_bank(db, get_public_key_pem())
+            logger.info("Re-registered after heartbeat 404: %s", new_id)
+        except Exception as exc:
+            logger.error("Re-registration after heartbeat 404 failed: %s", exc)
     else:
         logger.error("Heartbeat failed: %s %s", resp.status_code, resp.text)
 
