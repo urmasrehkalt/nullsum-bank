@@ -22,6 +22,7 @@ router = APIRouter(tags=["Accounts"])
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
     },
 )
