@@ -7,7 +7,7 @@ import re
 
 class UserRegistrationRequest(BaseModel):
     fullName: str
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
 
     @field_validator("fullName")
     @classmethod
