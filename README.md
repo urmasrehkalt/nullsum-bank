@@ -2,6 +2,8 @@
 
 Branch bank - integrates with a Central Bank to enable user accounts, transfers, and inter-bank payments.
 
+> **See also:** [INTEGRATIONS.md](INTEGRATIONS.md) — full breakdown of integrated systems, integration points, integration methods, and security rules.
+
 ---
 
 ## Technologies
